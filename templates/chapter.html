@@ -1,0 +1,138 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    {{ chapter.title if chapter else "Chapter" }} - AI Study App
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    {% if chapter %}
+        <!-- Flash messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <h1 class="mb-3">{{ chapter.title }}</h1>
+        <h5 class="text-muted mb-4">From: <a href="{{ url_for('view_subject', subject_id=chapter.subject.id) }}">{{ chapter.subject.name }}</a></h5>
+
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h4 class="card-title mb-0">AI Summary</h4>
+                    <div class="btn-group" role="group">
+                        <button id="read-aloud-btn" class="btn btn-outline-primary">Read Aloud</button>
+                        <button id="pause-aloud-btn" class="btn btn-outline-secondary" style="display: none;">Pause</button>
+                        <button id="stop-aloud-btn" class="btn btn-outline-danger" style="display: none;">Stop</button>
+                        <a href="{{ url_for('generate_quiz', chapter_id=chapter.id) }}" class="btn btn-outline-success">Take Quiz</a>
+                    </div>
+                </div>
+                <hr>
+                <div id="summary-text-content">
+                    <p class="card-text">{{ chapter.summary | safe }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Q&A Section -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <h4 class="card-title">Ask a Question</h4>
+                <form action="{{ url_for('ask_question', chapter_id=chapter.id) }}" method="post">
+                    <div class="mb-3">
+                        <textarea class="form-control" name="question" rows="2" placeholder="Ask a question about the summary above..."></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Ask</button>
+                </form>
+                {% if session.last_question and session.qna_chapter_id == chapter.id %}
+                <div class="mt-4"><hr><h6>Your Question:</h6><p class="text-muted"><em>{{ session.last_question }}</em></p><h6>AI's Answer:</h6><p>{{ session.last_answer | safe }}</p></div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Chart Section -->
+        {% if chapter.chart_path or chapter.chart_ideas %}
+        <div class="card mb-4">
+            <div class="card-body">
+                <h4 class="card-title">Visualizations</h4>
+                {% if chapter.chart_path %}<img src="{{ url_for('static', filename=chapter.chart_path) }}" class="img-fluid rounded" alt="Generated Chart for {{ chapter.title }}">{% endif %}
+                {% if chapter.chart_ideas %}
+                    <p class="mt-3">Chart Ideas:</p>
+                    <ul class="list-group">
+                        {% for idea in chapter.chart_ideas %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                {{ idea.idea_text }}
+                                <form action="{{ url_for('generate_chart', idea_id=idea.id) }}" method="post" class="ms-2">
+                                    <button type="submit" class="btn btn-sm btn-outline-primary {% if idea.is_generated %}disabled{% endif %}">{% if idea.is_generated %}Generated{% else %}Generate{% endif %}</button>
+                                </form>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+    {% else %}
+        <div class="alert alert-warning" role="alert">Chapter not found.</div>
+    {% endif %}
+    <a href="{{ url_for('view_subject', subject_id=chapter.subject.id) }}" class="btn btn-secondary mt-4">Back to Chapters</a>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const readBtn = document.getElementById('read-aloud-btn');
+        const pauseBtn = document.getElementById('pause-aloud-btn');
+        const stopBtn = document.getElementById('stop-aloud-btn');
+        const summaryText = document.getElementById('summary-text-content').innerText;
+
+        if ('speechSynthesis' in window) {
+            let utterance = new SpeechSynthesisUtterance(summaryText);
+
+            utterance.onend = function() {
+                readBtn.style.display = 'inline-block';
+                pauseBtn.style.display = 'none';
+                stopBtn.style.display = 'none';
+                pauseBtn.innerText = 'Pause';
+            };
+
+            readBtn.addEventListener('click', function() {
+                speechSynthesis.cancel(); // Cancel any previous speech
+                speechSynthesis.speak(utterance);
+                readBtn.style.display = 'none';
+                pauseBtn.style.display = 'inline-block';
+                stopBtn.style.display = 'inline-block';
+            });
+
+            pauseBtn.addEventListener('click', function() {
+                if (speechSynthesis.paused) {
+                    speechSynthesis.resume();
+                    pauseBtn.innerText = 'Pause';
+                } else {
+                    speechSynthesis.pause();
+                    pauseBtn.innerText = 'Resume';
+                }
+            });
+
+            stopBtn.addEventListener('click', function() {
+                speechSynthesis.cancel();
+                readBtn.style.display = 'inline-block';
+                pauseBtn.style.display = 'none';
+                stopBtn.style.display = 'none';
+                pauseBtn.innerText = 'Pause';
+            });
+        } else {
+            readBtn.disabled = true;
+            readBtn.innerText = 'TTS Not Supported';
+        }
+    });
+</script>
+{% endblock %}

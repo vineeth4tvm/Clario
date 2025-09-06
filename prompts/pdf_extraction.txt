@@ -1,0 +1,18 @@
+You are an expert academic assistant. Analyze the provided PDF file for the subject "{subject_name}".
+Your task is to break down the document into its main chapters. For each chapter, you must:
+1.  Provide a clear and accurate chapter title.
+2.  Write a concise summary of the key concepts, theories, and conclusions.
+3.  Identify 1-2 core economic concepts from the chapter that would be suitable for visualization as a chart (e.g., "Supply and Demand Curve", "GDP Growth Over Time").
+
+Please return your response as a single, valid JSON object. Do not include any text or markdown formatting before or after the JSON.
+The JSON structure should be:
+{{
+  "subject_name": "{subject_name}",
+  "chapters": [
+    {{
+      "title": "Chapter Title",
+      "summary": "A detailed summary of the chapter's content.",
+      "chart_ideas": ["Idea for first chart", "Idea for second chart"]
+    }}
+  ]
+}}

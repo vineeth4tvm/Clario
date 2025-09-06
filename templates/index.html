@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    All Subjects - AI Study App
+{% endblock %}
+
+{% block content %}
+    <div class="container">
+        <h1 class="mb-4">Study Subjects</h1>
+
+        {% if subjects %}
+            <div class="row">
+                {% for subject in subjects %}
+                    <div class="col-md-4 mb-4">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title">{{ subject.name }}</h5>
+                                <p class="card-text">
+                                    Contains {{ subject.chapters|length }} chapter(s).
+                                </p>
+                                <!-- This link is a placeholder for now. We will create the route next. -->
+                                <a href="#" class="btn btn-primary">View Subject</a>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="alert alert-info" role="alert">
+                No subjects have been added yet. Go to the admin page to upload a PDF.
+            </div>
+        {% endif %}
+    </div>
+{% endblock %}

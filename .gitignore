@@ -1,0 +1,17 @@
+# Environment variables
+.env
+
+# Python cache
+__pycache__/
+*.pyc
+
+# SQLite database
+*.db
+instance/
+
+# Uploaded files
+uploads/
+
+# OS-specific files
+.DS_Store
+Thumbs.db
