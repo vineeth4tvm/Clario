@@ -11,9 +11,9 @@
         {% if subject.chapters %}
             <div class="list-group">
                 {% for chapter in subject.chapters %}
-                    <a href="{{ url_for('view_chapter', chapter_id=chapter.id) }}" class="list-group-item list-group-item-action">
-                        {{ chapter.title }}
-                    </a>
+                <a href="{{ url_for('view_chapter', subject_id=subject.id, chapter_id=chapter.id) }}" class="list-group-item list-group-item-action">
+    {{ chapter.title }}
+</a>
                 {% endfor %}
             </div>
         {% else %}

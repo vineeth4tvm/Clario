@@ -19,7 +19,8 @@
                                     Contains {{ subject.chapters|length }} chapter(s).
                                 </p>
                                 <!-- This link is a placeholder for now. We will create the route next. -->
-                                <a href="#" class="btn btn-primary">View Subject</a>
+                                <a href="{{ url_for('view_subject', subject_id=subject.id) }}" class="btn btn-primary">View Subject</a>
+
                             </div>
                         </div>
                     </div>

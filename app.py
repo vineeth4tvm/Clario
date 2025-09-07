@@ -47,16 +47,22 @@ def create_app():
         subject = db.get_or_404(Subject, subject_id)
         return render_template('subject.html', subject=subject)
 
-    @app.route('/chapter/<int:chapter_id>')
-    def view_chapter(chapter_id):
+    @app.route('/subject/<int:subject_id>/chapter/<int:chapter_id>')
+    def view_chapter(subject_id, chapter_id):
         """Displays the main page for a chapter with all its features."""
         chapter = db.get_or_404(Chapter, chapter_id)
-        # Clear Q&A from session when navigating to a new chapter to avoid confusion
+
+        # Verify chapter belongs to the subject
+        if chapter.subject_id != subject_id:
+            abort(404)
+
+        # Clear Q&A when moving between chapters
         if session.get('qna_chapter_id') != chapter_id:
             session.pop('last_question', None)
             session.pop('last_answer', None)
         session['qna_chapter_id'] = chapter_id
-        return render_template('chapter.html', chapter=chapter)
+
+        return render_template('chapter.html', subject_id=subject_id, chapter=chapter)
 
     # =========================================================================
     # --- Admin and Processing Routes ---
@@ -113,7 +119,11 @@ def create_app():
         r_script = ai_service.generate_r_script_for_chart(chart_idea.idea_text)
         if not r_script:
             flash("AI service failed to generate an R script.", 'danger')
-            return redirect(url_for('view_chapter', chapter_id=chapter.id))
+            return redirect(url_for(
+                'view_chapter',
+                subject_id=chapter.subject_id,
+                chapter_id=chapter.id
+            ))
 
         chart_path = r_service.generate_chart_from_script(r_script)
         if not chart_path:
@@ -124,7 +134,11 @@ def create_app():
             db.session.commit()
             flash("Successfully generated and saved the chart!", 'success')
 
-        return redirect(url_for('view_chapter', chapter_id=chapter.id))
+        return redirect(url_for(
+            'view_chapter',
+            subject_id=chapter.subject_id,
+            chapter_id=chapter.id
+        ))
 
     @app.route('/ask/<int:chapter_id>', methods=['POST'])
     def ask_question(chapter_id):
@@ -141,7 +155,11 @@ def create_app():
             session['last_answer'] = answer
             session['qna_chapter_id'] = chapter_id
 
-        return redirect(url_for('view_chapter', chapter_id=chapter_id))
+        return redirect(url_for(
+            'view_chapter',
+            subject_id=chapter.subject_id,
+            chapter_id=chapter.id
+        ))
 
     # =========================================================================
     # --- Quiz Routes ---
@@ -155,7 +173,11 @@ def create_app():
 
         if not quiz_data or 'error' in quiz_data:
             flash(quiz_data.get('error', 'Could not generate quiz.'), 'danger')
-            return redirect(url_for('view_chapter', chapter_id=chapter.id))
+            return redirect(url_for(
+                'view_chapter',
+                subject_id=chapter.subject_id,
+                chapter_id=chapter.id
+            ))
 
         return render_template('quiz.html', chapter=chapter, quiz_data=quiz_data)
 
@@ -180,7 +202,11 @@ def create_app():
             return render_template('result.html', chapter=chapter, score=score, total=total)
         except Exception as e:
             flash(f"An error occurred while grading the quiz: {e}", 'danger')
-            return redirect(url_for('view_chapter', chapter_id=chapter.id))
+            return redirect(url_for(
+                'view_chapter',
+                subject_id=chapter.subject_id,
+                chapter_id=chapter.id
+            ))
 
     return app
 

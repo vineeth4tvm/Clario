@@ -3,6 +3,7 @@ import json
 import google.generativeai as genai
 from dotenv import load_dotenv
 from pathlib import Path
+from typing import Optional
 
 # --- Setup and Configuration ---
 PROMPTS_DIR = Path(__file__).resolve().parent / 'prompts'
@@ -13,20 +14,33 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 if not GEMINI_API_KEY or GEMINI_API_KEY == "YOUR_API_KEY_HERE":
     print("INFO: GEMINI_API_KEY is not configured. AI services will be disabled.")
     genai.configure(api_key="placeholder")
+    pro_model = None
+    flash_model = None
 else:
     genai.configure(api_key=GEMINI_API_KEY)
+    PRO_MODEL_NAME = os.getenv("GEMINI_PRO_MODEL", "gemini-1.5-pro-latest")
+    FLASH_MODEL_NAME = os.getenv("GEMINI_FLASH_MODEL", "gemini-1.5-flash-latest")
 
-PRO_MODEL_NAME = os.getenv("GEMINI_PRO_MODEL", "gemini-1.5-pro-latest")
-FLASH_MODEL_NAME = os.getenv("GEMINI_FLASH_MODEL", "gemini-1.5-flash-latest")
+    try:
+        pro_model = genai.GenerativeModel(PRO_MODEL_NAME)
+        flash_model = genai.GenerativeModel(FLASH_MODEL_NAME)
+    except AttributeError as e:
+        print(f"ERROR: {e}")
+        print("This might be due to an outdated google-generativeai package.")
+        print("Try running: pip install --upgrade google-generativeai")
+        pro_model = None
+        flash_model = None
 
-pro_model = genai.GenerativeModel(PRO_MODEL_NAME)
-flash_model = genai.GenerativeModel(FLASH_MODEL_NAME)
 
 # --- Helper Functions ---
 
 def _is_api_configured():
-    """Checks if the API key is properly configured."""
-    return GEMINI_API_KEY and GEMINI_API_KEY != "YOUR_API_KEY_HERE"
+    """Checks if the API key is properly configured and models are available."""
+    return (GEMINI_API_KEY and
+            GEMINI_API_KEY != "YOUR_API_KEY_HERE" and
+            pro_model is not None and
+            flash_model is not None)
+
 
 def _load_prompt(prompt_name: str) -> str:
     """
@@ -43,14 +57,16 @@ def _load_prompt(prompt_name: str) -> str:
             return f.read()
     except FileNotFoundError:
         print(f"ERROR: Prompt file not found: {prompt_name}")
-        return "" # Return empty string to prevent crashes, though this indicates a dev error.
+        return ""  # Return empty string to prevent crashes, though this indicates a dev error.
+
 
 # =========================================================================
 # --- Core AI Functions ---
 # =========================================================================
 
 def process_pdf_and_extract_chapters(file_path: str, subject_name: str) -> dict:
-    if not _is_api_configured(): return {"error": "Cannot process PDF. Gemini API key is not configured."}
+    if not _is_api_configured():
+        return {"error": "Cannot process PDF. Gemini API key is not configured or models unavailable."}
     try:
         uploaded_file = genai.upload_file(path=file_path, display_name=subject_name)
         prompt_template = _load_prompt('pdf_extraction.txt')
@@ -61,8 +77,10 @@ def process_pdf_and_extract_chapters(file_path: str, subject_name: str) -> dict:
     except Exception as e:
         return {"error": f"Failed to process PDF. Reason: {e}"}
 
-def generate_r_script_for_chart(chart_idea: str) -> str | None:
-    if not _is_api_configured(): return None
+
+def generate_r_script_for_chart(chart_idea: str) -> Optional[str]:
+    if not _is_api_configured():
+        return None
     try:
         prompt_template = _load_prompt('r_script_generation.txt')
         prompt = prompt_template.format(chart_idea=chart_idea)
@@ -72,8 +90,10 @@ def generate_r_script_for_chart(chart_idea: str) -> str | None:
     except Exception as e:
         return None
 
+
 def answer_question_from_context(question: str, context: str) -> str:
-    if not _is_api_configured(): return "Error: Cannot answer question. Gemini API key is not configured."
+    if not _is_api_configured():
+        return "Error: Cannot answer question. Gemini API key is not configured or models unavailable."
     try:
         prompt_template = _load_prompt('qa_contextual.txt')
         prompt = prompt_template.format(context=context, question=question)
@@ -82,8 +102,10 @@ def answer_question_from_context(question: str, context: str) -> str:
     except Exception as e:
         return f"Error: Could not get an answer from the AI. Reason: {e}"
 
-def generate_quiz_from_summary(summary: str) -> dict | None:
-    if not _is_api_configured(): return {"error": "Cannot generate quiz. Gemini API key is not configured."}
+
+def generate_quiz_from_summary(summary: str) -> Optional[dict]:
+    if not _is_api_configured():
+        return {"error": "Cannot generate quiz. Gemini API key is not configured or models unavailable."}
     try:
         prompt_template = _load_prompt('quiz_generation.txt')
         prompt = prompt_template.format(context=summary)
