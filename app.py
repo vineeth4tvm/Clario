@@ -5,6 +5,7 @@ from werkzeug.utils import secure_filename
 from models import db, Subject, Chapter, ChartIdea
 import ai_service
 import r_service
+from markdown_it import MarkdownIt
 
 def create_app():
     """
@@ -62,7 +63,13 @@ def create_app():
             session.pop('last_answer', None)
         session['qna_chapter_id'] = chapter_id
 
-        return render_template('chapter.html', subject_id=subject_id, chapter=chapter)
+        # Render Markdown for the 'facts' section
+        md = MarkdownIt()
+        # The AI is sometimes returning literal '\n' characters, so we replace them.
+        facts_markdown = chapter.facts.replace('\\n', '\n') if chapter.facts else ""
+        facts_html = md.render(facts_markdown) if facts_markdown else ""
+
+        return render_template('chapter.html', subject_id=subject_id, chapter=chapter, facts_html=facts_html)
 
     # =========================================================================
     # --- Admin and Processing Routes ---
@@ -98,10 +105,15 @@ def create_app():
                         db.session.add(new_subject)
 
                         for ch_data in processed_data.get('chapters', []):
-                            new_chapter = Chapter(title=ch_data.get('title'), summary=ch_data.get('summary'), subject=new_subject)
+                            new_chapter = Chapter(
+                                title=ch_data.get('title'),
+                                summary=ch_data.get('preface'),  # 'summary' in db now stores the preface
+                                facts=ch_data.get('facts'),      # New field for detailed facts
+                                subject=new_subject
+                            )
                             db.session.add(new_chapter)
-                            for idea_text in ch_data.get('chart_ideas', []):
-                                db.session.add(ChartIdea(idea_text=idea_text, chapter=new_chapter))
+                            # The new prompt doesn't generate chart ideas, so this loop is no longer needed.
+                            # If chart ideas were to be re-introduced, the prompt and this section would need updating.
                     db.session.commit()
                     flash('Successfully processed PDF and created new subject!', 'success')
                     return redirect(url_for('view_subject', subject_id=new_subject.id))

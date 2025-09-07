@@ -27,7 +27,8 @@ class Chapter(db.Model):
     __tablename__ = 'chapter'
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(200), nullable=False)
-    summary = db.Column(db.Text, nullable=False)
+    summary = db.Column(db.Text, nullable=False, comment="Stores the 'preface' or high-level summary of the chapter.")
+    facts = db.Column(db.Text, nullable=True, comment="Stores the detailed, bullet-pointed facts from the chapter, likely in Markdown format.")
 
     # Stores the relative path to a generated chart image (e.g., 'charts/some-uuid.png').
     chart_path = db.Column(db.String(200), nullable=True)
