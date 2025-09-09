@@ -2,10 +2,9 @@ import os
 import json
 from flask import Flask, render_template, request, redirect, url_for, flash, abort, session
 from werkzeug.utils import secure_filename
-from models import db, Subject, Chapter, ChartIdea
+from models import db, Subject, Chapter
 import ai_service
-import r_service
-from markdown_it import MarkdownIt
+import json
 
 def create_app():
     """
@@ -63,13 +62,14 @@ def create_app():
             session.pop('last_answer', None)
         session['qna_chapter_id'] = chapter_id
 
-        # Render Markdown for the 'facts' section
-        md = MarkdownIt()
-        # The AI is sometimes returning literal '\n' characters, so we replace them.
-        facts_markdown = chapter.facts.replace('\\n', '\n') if chapter.facts else ""
-        facts_html = md.render(facts_markdown) if facts_markdown else ""
+        content_blocks = []
+        if chapter.content_blocks:
+            try:
+                content_blocks = json.loads(chapter.content_blocks)
+            except json.JSONDecodeError:
+                flash('Error decoding chapter content.', 'danger')
 
-        return render_template('chapter.html', subject_id=subject_id, chapter=chapter, facts_html=facts_html)
+        return render_template('chapter.html', subject_id=subject_id, chapter=chapter, content_blocks=content_blocks)
 
     # =========================================================================
     # --- Admin and Processing Routes ---
@@ -101,19 +101,21 @@ def create_app():
                 try:
                     # Use a transaction to ensure all data is saved or none at all
                     with db.session.begin_nested():
-                        new_subject = Subject(name=processed_data.get('subject_name', subject_name))
+                        new_subject = Subject(
+                            name=processed_data.get('subject_name', subject_name),
+                            preface=processed_data.get('preface'),
+                            overall_summary=processed_data.get('overall_summary')
+                        )
                         db.session.add(new_subject)
 
                         for ch_data in processed_data.get('chapters', []):
                             new_chapter = Chapter(
                                 title=ch_data.get('title'),
-                                summary=ch_data.get('preface'),  # 'summary' in db now stores the preface
-                                facts=ch_data.get('facts'),      # New field for detailed facts
+                                intro_summary=ch_data.get('intro_summary'),
+                                content_blocks=json.dumps(ch_data.get('content_blocks', [])),
                                 subject=new_subject
                             )
                             db.session.add(new_chapter)
-                            # The new prompt doesn't generate chart ideas, so this loop is no longer needed.
-                            # If chart ideas were to be re-introduced, the prompt and this section would need updating.
                     db.session.commit()
                     flash('Successfully processed PDF and created new subject!', 'success')
                     return redirect(url_for('view_subject', subject_id=new_subject.id))
@@ -121,36 +123,6 @@ def create_app():
                     db.session.rollback()
                     flash(f"Database error: Failed to save subject. Reason: {e}", 'danger')
         return render_template('admin_upload.html')
-
-    @app.route('/generate-chart/<int:idea_id>', methods=['POST'])
-    def generate_chart(idea_id):
-        """Generates a chart from a ChartIdea via a POST request."""
-        chart_idea = db.get_or_404(ChartIdea, idea_id)
-        chapter = chart_idea.chapter
-
-        r_script = ai_service.generate_r_script_for_chart(chart_idea.idea_text)
-        if not r_script:
-            flash("AI service failed to generate an R script.", 'danger')
-            return redirect(url_for(
-                'view_chapter',
-                subject_id=chapter.subject_id,
-                chapter_id=chapter.id
-            ))
-
-        chart_path = r_service.generate_chart_from_script(r_script)
-        if not chart_path:
-            flash("R service failed to execute the script and generate a chart.", 'danger')
-        else:
-            chapter.chart_path = chart_path
-            chart_idea.is_generated = True
-            db.session.commit()
-            flash("Successfully generated and saved the chart!", 'success')
-
-        return redirect(url_for(
-            'view_chapter',
-            subject_id=chapter.subject_id,
-            chapter_id=chapter.id
-        ))
 
     @app.route('/ask/<int:chapter_id>', methods=['POST'])
     def ask_question(chapter_id):
@@ -161,7 +133,7 @@ def create_app():
         if not question:
             flash("Please enter a question.", 'warning')
         else:
-            context = chapter.summary
+            context = chapter.intro_summary
             answer = ai_service.answer_question_from_context(question, context)
             session['last_question'] = question
             session['last_answer'] = answer
@@ -181,7 +153,7 @@ def create_app():
     def generate_quiz(chapter_id):
         """Generates a quiz from a chapter's summary and displays it."""
         chapter = db.get_or_404(Chapter, chapter_id)
-        quiz_data = ai_service.generate_quiz_from_summary(chapter.summary)
+        quiz_data = ai_service.generate_quiz_from_summary(chapter.intro_summary)
 
         if not quiz_data or 'error' in quiz_data:
             flash(quiz_data.get('error', 'Could not generate quiz.'), 'danger')

@@ -22,10 +22,11 @@
         <h1 class="mb-3">{{ chapter.title }}</h1>
         <h5 class="text-muted mb-4">From: <a href="{{ url_for('view_subject', subject_id=chapter.subject.id) }}">{{ chapter.subject.name }}</a></h5>
 
+        <!-- AI Summary Section -->
         <div class="card mb-4">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center">
-                    <h4 class="card-title mb-0">AI Preface</h4>
+                    <h4 class="card-title mb-0">AI Summary</h4>
                     <div class="btn-group" role="group">
                         <button id="read-aloud-btn" class="btn btn-outline-primary">Read Aloud</button>
                         <button id="pause-aloud-btn" class="btn btn-outline-secondary" style="display: none;">Pause</button>
@@ -35,23 +36,29 @@
                 </div>
                 <hr>
                 <div id="summary-text-content">
-                    <p class="card-text">{{ chapter.summary | safe }}</p>
+                    {{ chapter.intro_summary | safe }}
                 </div>
             </div>
         </div>
 
-        <!-- Key Facts and Concepts Section -->
-        {% if chapter.facts %}
-        <div class="card mb-4">
-            <div class="card-body">
-                <h4 class="card-title">Key Facts and Concepts</h4>
-                <hr>
-                <div class="markdown-content">
-                    {{ facts_html | safe }}
+        <!-- Content Blocks Section -->
+        <h2 class="mb-3">Facts and Explanations</h2>
+        {% for block in content_blocks %}
+            {% if block.type == 'text' %}
+                <p>{{ block.content | safe }}</p>
+            {% elif block.type == 'chart' %}
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <canvas id="chart-{{ loop.index }}"></canvas>
+                        {% if block.explanation %}
+                            <p class="mt-3 text-muted"><em>{{ block.explanation | safe }}</em></p>
+                        {% endif %}
+                    </div>
                 </div>
-            </div>
-        </div>
-        {% endif %}
+            {% endif %}
+        {% else %}
+            <div class="alert alert-info">This chapter has no detailed content yet.</div>
+        {% endfor %}
 
         <!-- Q&A Section -->
         <div class="card mb-4">
@@ -69,16 +76,6 @@
             </div>
         </div>
 
-        <!-- Chart Section -->
-        {% if chapter.chart_path %}
-        <div class="card mb-4">
-            <div class="card-body">
-                <h4 class="card-title">Visualizations</h4>
-                {% if chapter.chart_path %}<img src="{{ url_for('static', filename=chapter.chart_path) }}" class="img-fluid rounded" alt="Generated Chart for {{ chapter.title }}">{% endif %}
-            </div>
-        </div>
-        {% endif %}
-
     {% else %}
         <div class="alert alert-warning" role="alert">Chapter not found.</div>
     {% endif %}
@@ -89,6 +86,20 @@
 {% block scripts %}
 <script>
     document.addEventListener('DOMContentLoaded', function () {
+        // Chart rendering
+        {% for block in content_blocks %}
+            {% if block.type == 'chart' and block.chart_json %}
+            try {
+                const chartData_{{ loop.index }} = {{ block.chart_json | tojson }};
+                const ctx_{{ loop.index }} = document.getElementById('chart-{{ loop.index }}').getContext('2d');
+                new Chart(ctx_{{ loop.index }}, chartData_{{ loop.index }});
+            } catch (e) {
+                console.error("Failed to parse or render chart JSON for chart-{{ loop.index }}:", e);
+            }
+            {% endif %}
+        {% endfor %}
+
+        // Text-to-speech for summary
         const readBtn = document.getElementById('read-aloud-btn');
         const pauseBtn = document.getElementById('pause-aloud-btn');
         const stopBtn = document.getElementById('stop-aloud-btn');
@@ -115,7 +126,7 @@
             pauseBtn.addEventListener('click', function() {
                 if (speechSynthesis.paused) {
                     speechSynthesis.resume();
-                    pauseBtn.innerText = 'Pause';
+                    pauseBtn.innerText = 'Resume';
                 } else {
                     speechSynthesis.pause();
                     pauseBtn.innerText = 'Resume';

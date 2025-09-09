@@ -6,20 +6,39 @@
 
 {% block content %}
     <div class="container">
-        <h1 class="mb-3">Chapters in {{ subject.name }}</h1>
+        <h1 class="mb-3">{{ subject.name }}</h1>
 
+        {% if subject.preface %}
+        <div class="card bg-light mb-4">
+            <div class="card-body">
+                <h4 class="card-title">Overview</h4>
+                <p class="card-text">{{ subject.preface | safe }}</p>
+            </div>
+        </div>
+        {% endif %}
+
+        <h2 class="mb-3">Chapters</h2>
         {% if subject.chapters %}
-            <div class="list-group">
+            <div class="list-group mb-4">
                 {% for chapter in subject.chapters %}
                 <a href="{{ url_for('view_chapter', subject_id=subject.id, chapter_id=chapter.id) }}" class="list-group-item list-group-item-action">
-    {{ chapter.title }}
-</a>
+                    {{ chapter.title }}
+                </a>
                 {% endfor %}
             </div>
         {% else %}
             <div class="alert alert-info" role="alert">
                 This subject has no chapters yet.
             </div>
+        {% endif %}
+
+        {% if subject.overall_summary %}
+        <div class="card bg-light mt-4">
+            <div class="card-body">
+                <h4 class="card-title">Subject Summary</h4>
+                <p class="card-text">{{ subject.overall_summary | safe }}</p>
+            </div>
+        </div>
         {% endif %}
 
         <a href="{{ url_for('index') }}" class="btn btn-secondary mt-4">Back to All Subjects</a>

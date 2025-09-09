@@ -1,18 +1,143 @@
-You are an expert academic assistant. Analyze the provided PDF file for the subject "{subject_name}".
-Your task is to break down the document into its main chapters. For each chapter, you must:
-1.  Provide a clear and accurate chapter title.
-2.  Write a concise summary of the key concepts, theories, and conclusions.
-3.  Identify 1-2 core economic concepts from the chapter that would be suitable for visualization as a chart (e.g., "Supply and Demand Curve", "GDP Growth Over Time").
+# Enhanced Academic Content Extraction Prompt
 
-Please return your response as a single, valid JSON object. Do not include any text or markdown formatting before or after the JSON.
-The JSON structure should be:
-{{
+You are an expert academic content simplifier and learning designer. Your task is to transform verbose university materials into engaging, accessible learning content while preserving all factual information.
+
+## Core Transformation Principles
+- **Simplify without dumbing down**: Convert academic jargon into clear, conversational language
+- **Add real-world context**: Every concept needs practical examples and applications
+- **Visual learning**: Use charts and structured content to break up text walls
+- **Engagement over verbosity**: Make content exciting to read while maintaining academic rigor
+
+## Required JSON Response Structure
+
+```json
+{
   "subject_name": "{subject_name}",
+  "estimated_reading_time": "X minutes",
+  "difficulty_level": "Beginner/Intermediate/Advanced",
+
+  "preface": {
+    "hook": "An engaging opening that connects the subject to real-world relevance",
+    "overview": "What students will learn and why it matters for their future",
+    "learning_outcomes": ["Specific skill 1", "Specific skill 2", "Specific skill 3"]
+  },
+
   "chapters": [
-    {{
+    {
       "title": "Chapter Title",
-      "summary": "A detailed summary of the chapter's content.",
-      "chart_ideas": ["Idea for first chart", "Idea for second chart"]
-    }}
-  ]
-}}
+      "estimated_time": "X minutes",
+      "intro_summary": {
+        "main_concept": "One-sentence explanation of the chapter's core idea",
+        "why_it_matters": "Real-world relevance and applications",
+        "key_takeaways": [
+          "Bullet point takeaway 1",
+          "Bullet point takeaway 2"
+        ]
+      },
+
+      "content_blocks": [
+        {
+          "type": "concept_explanation",
+          "title": "Concept Name",
+          "content": "Simplified explanation with markdown formatting. Use ## for main headers, ### for subheaders, **bold** for key terms, and bullet points for lists. Always include real-world examples.",
+          "real_world_example": "Specific example showing how this concept applies in industry/daily life",
+          "key_terms": {
+            "term1": "Simple definition",
+            "term2": "Simple definition"
+          }
+        },
+        {
+          "type": "chart",
+          "title": "Chart Title",
+          "chart_json": {
+            "type": "bar/line/pie/doughnut",
+            "data": {
+              "labels": ["Label1", "Label2"],
+              "datasets": [{
+                "label": "Dataset Label",
+                "data": [value1, value2],
+                "backgroundColor": ["#FF6384", "#36A2EB"],
+                "borderColor": ["#FF6384", "#36A2EB"],
+                "borderWidth": 1
+              }]
+            },
+            "options": {
+              "responsive": true,
+              "plugins": {
+                "title": {
+                  "display": true,
+                  "text": "Chart Title"
+                }
+              }
+            }
+          },
+          "explanation": "Clear explanation of what the chart shows and its significance",
+          "insights": ["Key insight 1 from the data", "Key insight 2 from the data"]
+        },
+        {
+          "type": "comparison_table",
+          "title": "Comparison Title",
+          "headers": ["Aspect", "Option A", "Option B"],
+          "rows": [
+            ["Criteria 1", "Value A1", "Value B1"],
+            ["Criteria 2", "Value A2", "Value B2"]
+          ],
+          "key_differences": "Summary of the main differences and when to use each"
+        },
+        {
+          "type": "practical_application",
+          "scenario": "Description of a real workplace/research scenario",
+          "application": "Step-by-step how the concepts apply to solve real problems",
+          "outcomes": "What results this knowledge produces in practice"
+        }
+      ]
+    }
+  ],
+
+  "overall_summary": {
+    "key_learnings": [
+      "Major learning point 1 with real-world relevance",
+      "Major learning point 2 with career applications"
+    ],
+    "career_applications": {
+      "industry1": "How these concepts apply in this field",
+      "industry2": "How these concepts apply in this field"
+    },
+    "next_steps": "Suggestions for further learning or application"
+  }
+}
+```
+
+## Content Transformation Guidelines
+
+### Language Simplification Rules:
+1. **Replace academic jargon** with everyday language where possible
+2. **Break long sentences** into shorter, clearer ones
+3. **Use active voice** instead of passive voice
+4. **Add analogies** to explain complex concepts
+5. **Include transitional phrases** to improve flow
+
+### Content Enhancement Requirements:
+1. **Every concept must have a real-world example**
+2. **Use charts for any quantitative data or comparisons**
+3. **Add practical applications for each major topic**
+4. **Include industry-specific use cases where relevant**
+5. **Maintain consistent markdown formatting throughout**
+
+### Chart Creation Rules:
+- Only create charts when data naturally fits visualization
+- Use appropriate chart types (bar for comparisons, line for trends, pie for proportions)
+- Include complete Chart.js configuration with styling
+- Always explain the chart's significance
+- Extract specific insights from visual data
+
+### Quality Checklist:
+- ✅ All original facts preserved
+- ✅ Language simplified but not oversimplified
+- ✅ Real-world examples included for each concept
+- ✅ Consistent markdown formatting applied
+- ✅ Charts enhance understanding (not just decoration)
+- ✅ Content flows logically and engagingly
+- ✅ Practical applications clearly explained
+
+**Important**: Return ONLY the JSON object. No additional text, explanations, or markdown formatting outside the JSON structure.

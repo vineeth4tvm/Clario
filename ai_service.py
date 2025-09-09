@@ -69,28 +69,13 @@ def process_pdf_and_extract_chapters(file_path: str, subject_name: str) -> dict:
         return {"error": "Cannot process PDF. Gemini API key is not configured or models unavailable."}
     try:
         uploaded_file = genai.upload_file(path=file_path, display_name=subject_name)
-        prompt_template = _load_prompt('chapter_generation.txt')
+        prompt_template = _load_prompt('pdf_extraction.txt')
         prompt = prompt_template.format(subject_name=subject_name)
-
         response = pro_model.generate_content([prompt, uploaded_file])
-
         cleaned_json = response.text.strip().replace("```json", "").replace("```", "").strip()
         return json.loads(cleaned_json)
     except Exception as e:
         return {"error": f"Failed to process PDF. Reason: {e}"}
-
-
-def generate_r_script_for_chart(chart_idea: str) -> Optional[str]:
-    if not _is_api_configured():
-        return None
-    try:
-        prompt_template = _load_prompt('r_script_generation.txt')
-        prompt = prompt_template.format(chart_idea=chart_idea)
-        response = flash_model.generate_content(prompt)
-        r_script = response.text.strip().replace("```r", "").replace("```", "").strip()
-        return r_script
-    except Exception as e:
-        return None
 
 
 def answer_question_from_context(question: str, context: str) -> str:

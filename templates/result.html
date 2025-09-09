@@ -1,32 +1,50 @@
 {% extends 'base.html' %}
 
 {% block title %}
-    Quiz Results - AI Study App
+    {{ quiz_data.title if quiz_data else "Quiz" }} - AI Study App
 {% endblock %}
 
 {% block content %}
 <div class="container">
-    <div class="row justify-content-center">
-        <div class="col-md-8 text-center">
-            <div class="card">
-                <div class="card-body">
-                    <h1 class="card-title">Quiz Complete!</h1>
-                    <h4 class="text-muted mb-4">Results for: {{ chapter.title }}</h4>
-                    <p class="display-4">Your Score:</p>
-                    <p class="display-1">{{ score }} / {{ total }}</p>
+    <h1 class="mb-4">{{ quiz_data.title }}</h1>
+    <h5 class="text-muted mb-4">Quiz for: <a href="{{ url_for('view_chapter', subject_id=chapter.subject.id, chapter_id=chapter.id) }}">{{ chapter.title }}</a></h5>
 
-                    {% if score == total %}
-                        <p class="lead text-success">Excellent work! You got a perfect score!</p>
-                    {% elif score > total / 2 %}
-                        <p class="lead text-primary">Good job! Keep reviewing the material.</p>
-                    {% else %}
-                        <p class="lead text-warning">You can do better! Try reviewing the summary and taking the quiz again.</p>
-                    {% endif %}
+    <form action="{{ url_for('submit_quiz', chapter_id=chapter.id) }}" method="post">
+        <!-- Hidden input to pass the quiz data (including answers) to the submission route -->
+        <textarea name="quiz_data" hidden>{{ quiz_data | tojson }}</textarea>
 
-                    <a href="{{ url_for('view_chapter', chapter_id=chapter.id) }}" class="btn btn-primary mt-4">Return to Chapter</a>
-                </div>
-            </div>
+
+        {% for question in quiz_data.questions %}
+    {% set q_index = loop.index0 %}   {# capture question index #}
+    <div class="card mb-4">
+        <div class="card-header">
+            Question {{ loop.index }} of {{ quiz_data.questions|length }}
+        </div>
+        <div class="card-body">
+            <p class="card-text">{{ question.question_text }}</p>
+
+            {% set letters = ["A", "B", "C", "D", "E", "F"] %}
+{% for option in question.options %}
+<div class="form-check">
+    <input class="form-check-input"
+           type="radio"
+           name="question_{{ q_index }}"
+           id="q{{ q_index }}_option{{ loop.index0 }}"
+           value="{{ loop.index0 }}"
+           required>
+    <label class="form-check-label"
+           for="q{{ q_index }}_option{{ loop.index0 }}">
+        {{ letters[loop.index0] }}. {{ option }}
+    </label>
+</div>
+{% endfor %}
+
         </div>
     </div>
+{% endfor %}
+
+
+        <button type="submit" class="btn btn-primary btn-lg">Submit Quiz</button>
+    </form>
 </div>
 {% endblock %}
